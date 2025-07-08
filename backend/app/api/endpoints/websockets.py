@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
@@ -30,7 +30,7 @@ async def websocket_endpoint(
             "type": "connection_established",
             "session_id": session_id,
             "client_id": client_id or "anonymous",
-            "timestamp": datetime.now(datetime.timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
         while True:
@@ -45,7 +45,7 @@ async def websocket_endpoint(
                     elif message.get("type") == "ping":
                         await websocket.send_json({
                             "type": "pong",
-                            "timestamp": datetime.now(datetime.timezone.utc).isoformat()
+                            "timestamp": datetime.now(timezone.utc).isoformat()
                         })
                 except json.JSONDecodeError:
                     await websocket.send_json({

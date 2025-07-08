@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean, JSON
 
 from app.db.session import Base
@@ -16,7 +16,7 @@ class Transcript(Base):
     is_prospect = Column(Boolean, default=False)
     confidence = Column(Float, nullable=True)
     detected_keywords = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     def __repr__(self):
         return f"<Transcript(id={self.id}, session_id='{self.session_id}', start_time={self.start_time})>"
@@ -32,8 +32,8 @@ class AudioSession(Base):
     duration = Column(Float, nullable=True)
     status = Column(String, default="active")
     metadata = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     def __repr__(self):
         return f"<AudioSession(id={self.id}, session_id='{self.session_id}', status='{self.status}')>"

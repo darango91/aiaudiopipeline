@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -12,8 +12,8 @@ class Keyword(Base):
     text = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
     threshold = Column(Float, default=0.7)
-    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     talking_points = relationship("TalkingPoint", back_populates="keyword", cascade="all, delete-orphan")
     
@@ -29,8 +29,8 @@ class TalkingPoint(Base):
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     priority = Column(Integer, default=1)
-    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     keyword = relationship("Keyword", back_populates="talking_points")
     

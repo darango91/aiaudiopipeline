@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -57,7 +57,7 @@ class NotificationService:
             notification = Notification(
                 type=notification_type,
                 session_id=session_id,
-                timestamp=datetime.now(datetime.timezone.utc),
+                timestamp=datetime.now(timezone.utc),
                 payload=payload
             )
             

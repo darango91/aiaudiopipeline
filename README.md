@@ -7,10 +7,9 @@ A real-time audio processing system that transcribes speech, detects keywords, a
 - **Real-time Audio Processing**: Transcribe speech from file uploads or streaming audio using OpenAI's Whisper API
 - **Keyword Detection**: Identify important keywords in conversations with configurable detection rules
 - **Contextual Talking Points**: Provide relevant information when keywords are detected to enhance conversation quality
-- **Speaker Diarization**: Differentiate between speakers in the conversation (prospect vs. agent)
 - **Real-time Notifications**: Push updates to clients via WebSocket with robust error handling
 - **User-friendly Interface**: Clean React frontend with real-time transcript display
-- **Fault Tolerance**: Graceful handling of API quota limits with mock transcription fallback
+- **Docker Containerization**: Easy deployment with Docker and Docker Compose
 
 ## Architecture
 
@@ -37,7 +36,6 @@ The system is built with a clean, modular architecture using containerization:
   - **NotificationService**: Manages real-time WebSocket notifications with Redis pub/sub
   - **KeywordDetector**: Identifies keywords in transcripts using pattern matching
   - **AudioProcessor**: Orchestrates the audio processing workflow
-  - **SpeakerDiarizationService**: Identifies speakers in audio conversations
 
 - **Data Flow**:
   1. Audio is uploaded or streamed to the backend
@@ -62,14 +60,13 @@ The system is built with a clean, modular architecture using containerization:
    POSTGRES_USER=postgres
    POSTGRES_PASSWORD=postgres
    POSTGRES_DB=aiaudio
-   POSTGRES_HOST=postgres
+   POSTGRES_HOST=db
    REDIS_HOST=redis
-   USE_MOCK_TRANSCRIPTION=false  # Set to true for development without API calls
+   AUDIO_STORAGE_PATH=/app/audio_storage
+   VITE_API_URL=http://localhost:8000
    ```
-3. Create a `.env` file in the `frontend` directory:
-   ```
-   VITE_API_URL=http://localhost:8080/api
-   ```
+
+   Note: The `.env.example` file provides a template for the required environment variables.
 4. Build and start the containers:
    ```
    docker compose build
@@ -80,16 +77,17 @@ This will start all required services in Docker containers.
 
 ### Accessing the Application
 
-- **Frontend**: http://localhost:8080
-- **API Documentation**: http://localhost:8080/api/docs
-- **Backend API**: http://localhost:8080/api
+- **Frontend**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/docs
+- **Backend API**: http://localhost:8000
+- **Nginx Gateway**: http://localhost:8080
 
 ## Development
 
 ### Project Structure
 
 ```
-aiaudio/
+aiaudiopipeline/
 ├── backend/                # Python FastAPI backend
 │   ├── app/
 │   │   ├── api/            # API endpoints
@@ -97,17 +95,20 @@ aiaudio/
 │   │   │   └── router.py   # API router configuration
 │   │   ├── core/           # Core configuration
 │   │   │   └── config.py   # Environment and app settings
+│   │   ├── crud/           # Database CRUD operations
 │   │   ├── db/             # Database session management
 │   │   ├── models/         # SQLAlchemy models
 │   │   ├── schemas/        # Pydantic schemas
 │   │   │   ├── audio.py    # Audio and transcription schemas
 │   │   │   └── notification.py # Notification schemas
 │   │   └── services/       # Business logic services
-│   │       ├── audio.py    # Audio processing service
+│   │       ├── audio_processor.py # Audio processing service
 │   │       ├── transcription.py # OpenAI integration
+│   │       ├── keyword_detector.py # Keyword detection
 │   │       └── notification.py # WebSocket notifications
+│   ├── scripts/            # Utility scripts
 │   ├── tests/              # Backend tests
-│   └── requirements.txt    # Python dependencies
+│   └── alembic/            # Database migrations
 ├── frontend/               # React frontend
 │   ├── public/             # Static assets
 │   ├── src/
@@ -120,6 +121,7 @@ aiaudio/
 │   ├── frontend/           # Frontend Dockerfile
 │   └── nginx/              # Nginx configuration
 ├── .env                    # Environment variables
+├── .env.example           # Example environment variables
 └── docker-compose.yml      # Docker Compose configuration
 ```
 
@@ -147,13 +149,12 @@ The system integrates with OpenAI's Whisper API for high-quality speech transcri
 ```python
 # Example of OpenAI API integration with error handling
 async def transcribe_file(self, file_path: str) -> TranscriptionResult:
-    try:
-        # Try mock transcription for development/testing
-        if os.environ.get("USE_MOCK_TRANSCRIPTION", "false").lower() == "true":
-            return self._create_mock_transcription()
-            
-        # Use OpenAI's Whisper model for transcription
+    if not self.api_key:
+        raise ValueError("OpenAI API key is not configured")
+        
+    try:                
         with open(file_path, "rb") as audio_file:
+            loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
                 lambda: self.client.audio.transcriptions.create(
@@ -166,9 +167,7 @@ async def transcribe_file(self, file_path: str) -> TranscriptionResult:
             )
         # Process response...
     except Exception as e:
-        # Fall back to mock transcription for API errors
-        if "insufficient_quota" in str(e):
-            return self._create_mock_transcription()
+        logger.error(f"Error transcribing audio file: {str(e)}")
         raise
 ```
 
@@ -210,29 +209,32 @@ The application is fully containerized using Docker and Docker Compose:
 
 - Updated OpenAI client usage to be compatible with SDK v1.0.0+
 - Fixed response handling to work with object attributes instead of dictionary access
-- Added robust error handling for API response format changes
+- Removed mock transcription fallback for cleaner implementation
+- Added proper error handling for API responses
 
 ### WebSocket Notification Fixes
 
-- Fixed notification broadcasting by using proper method reference (`self.broadcast_notification`)
+- Fixed notification broadcasting with proper WebSocket connection management
 - Implemented custom JSON serialization for datetime objects
 - Changed WebSocket sending from `send_json()` to `send_text()` with pre-serialized JSON
 - Added proper error handling for WebSocket connections
 
 ### Environment Variable Management
 
-- Centralized environment variable configuration in `.env` files
-- Added support for development mode with mock transcription
+- Centralized environment variable configuration in `.env` file
 - Ensured proper environment variable propagation to Docker containers
 - Added validation for required environment variables
+- Fixed timezone import issue in datetime handling
 
 ## Future Enhancements
 
 - Implement more sophisticated keyword detection with NLP techniques
 - Add user authentication and multi-tenant support
-- Enhance speaker diarization with machine learning models
+- Implement speaker diarization
 - Implement real-time audio streaming from browser
 - Add analytics dashboard for call insights
+- Implement error recovery mechanisms for API failures
+- Add support for additional languages and audio formats
 
 ### Frontend Development
 
@@ -269,7 +271,7 @@ The application is containerized and can be deployed to any environment that sup
 
 - Implement authentication and authorization
 - Enhance keyword detection with NLP techniques
-- Improve speaker diarization accuracy
+- Implement speaker diarization
 - Add analytics dashboard
 - Implement real-time audio visualization
 

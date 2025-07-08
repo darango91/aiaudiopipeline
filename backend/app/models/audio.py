@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -17,8 +17,8 @@ class AudioSession(Base):
     description = Column(Text, nullable=True)
     status = Column(String(50), default="active")
     meta_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     transcripts = relationship("Transcript", back_populates="session", cascade="all, delete-orphan")
 
@@ -36,7 +36,7 @@ class Transcript(Base):
     language = Column(String(10), nullable=True)
     duration = Column(Integer, nullable=True)
     meta_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     session = relationship("AudioSession", back_populates="transcripts")

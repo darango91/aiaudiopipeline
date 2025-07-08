@@ -33,11 +33,7 @@ class TranscriptionService:
         if not self.api_key:
             raise ValueError("OpenAI API key is not configured")
         
-        try:
-            if os.environ.get("USE_MOCK_TRANSCRIPTION", "false").lower() == "true":
-                logger.info("Using mock transcription response for file")
-                return self._create_mock_transcription()
-                
+        try:                
             with open(file_path, "rb") as audio_file:
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
@@ -113,56 +109,8 @@ class TranscriptionService:
         
         except Exception as e:
             logger.error(f"Error transcribing audio file: {str(e)}")
-            if "insufficient_quota" in str(e) or "exceeded your current quota" in str(e):
-                logger.warning("OpenAI API quota exceeded, using mock transcription instead")
-                return self._create_mock_transcription()
             raise
-    
-    def _create_mock_transcription(self) -> TranscriptionResult:
-        """
-        Create a mock transcription result for testing purposes.
-        
-        Returns:
-            TranscriptionResult with mock data
-        """
-        segments = [
-            TranscriptSegment(
-                text="Hello, this is a mock transcription for testing purposes.",
-                start_time=0.0,
-                end_time=3.0,
-                confidence=0.98,
-                speaker=None,
-                is_prospect=False
-            ),
-            TranscriptSegment(
-                text="The OpenAI API quota has been exceeded, so we're using this mock response instead.",
-                start_time=3.1,
-                end_time=7.0,
-                confidence=0.97,
-                speaker=None,
-                is_prospect=False
-            ),
-            TranscriptSegment(
-                text="This allows you to continue testing the application without being blocked by API limits.",
-                start_time=7.1,
-                end_time=11.0,
-                confidence=0.99,
-                speaker=None,
-                is_prospect=False
-            )
-        ]
-        
-        full_text = " ".join([segment.text for segment in segments])
-        
-        return TranscriptionResult(
-            session_id="",
-            text=full_text,
-            segments=segments,
-            language="en",
-            duration=11,
-            is_final=True
-        )
-    
+
     async def transcribe_chunk(self, chunk_path: str, is_final: bool = False) -> TranscriptionResult:
         """
         Transcribe a chunk of audio data.
@@ -177,11 +125,7 @@ class TranscriptionService:
         if not self.api_key:
             raise ValueError("OpenAI API key is not configured")
         
-        try:
-            if os.environ.get("USE_MOCK_TRANSCRIPTION", "false").lower() == "true":
-                logger.info("Using mock transcription response for chunk")
-                return self._create_mock_transcription()
-                
+        try:  
             with open(chunk_path, "rb") as audio_file:
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
@@ -257,7 +201,4 @@ class TranscriptionService:
         
         except Exception as e:
             logger.error(f"Error transcribing audio chunk: {str(e)}")
-            if "insufficient_quota" in str(e) or "exceeded your current quota" in str(e):
-                logger.warning("OpenAI API quota exceeded, using mock transcription instead")
-                return self._create_mock_transcription()
             raise
