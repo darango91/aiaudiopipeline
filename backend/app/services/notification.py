@@ -2,9 +2,8 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Callable
+from typing import Dict, Any, List
 
-# Custom JSON encoder for datetime objects
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
@@ -55,22 +54,19 @@ class NotificationService:
             payload: Notification payload
         """
         try:
-            # Create notification object using the Notification class
             notification = Notification(
                 type=notification_type,
                 session_id=session_id,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(datetime.timezone.utc),
                 payload=payload
             )
             
-            # Publish to Redis channel for the session
             redis_client = await self.redis_client
             await redis_client.publish(
                 f"notifications:{session_id}",
                 json.dumps(notification.model_dump(), cls=DateTimeEncoder)
             )
             
-            # Also broadcast directly to connected WebSocket clients
             try:
                 await self.broadcast_notification(notification)
             except Exception as e:
@@ -91,7 +87,6 @@ class NotificationService:
         pubsub = client.pubsub()
         await pubsub.subscribe(f"notifications:{session_id}")
         
-        # Process messages in background task
         asyncio.create_task(self._process_messages(pubsub, callback))
         
     async def broadcast_notification(self, notification: Notification):
@@ -109,7 +104,6 @@ class NotificationService:
             
             for connection in active_connections[session_id]:
                 try:
-                    # Format the notification in a way the frontend expects
                     message = {
                         "type": notification.type,
                         "session_id": session_id,
@@ -117,16 +111,13 @@ class NotificationService:
                         "payload": notification.payload
                     }
                     
-                    # Convert to JSON string and send
                     json_str = json.dumps(message, cls=DateTimeEncoder)
                     logger.debug(f"Sending notification: {json_str}")
                     await connection.send_text(json_str)
                 except Exception as e:
                     logger.error(f"Error sending notification to client: {e}")
-                    # Mark connection for removal
                     connections_to_remove.append(connection)
             
-            # Remove failed connections after iteration
             for connection in connections_to_remove:
                 if connection in active_connections[session_id]:
                     active_connections[session_id].remove(connection)
@@ -144,13 +135,11 @@ class NotificationService:
                     except Exception as e:
                         logger.error(f"Error processing notification: {str(e)}")
                 
-                # Small sleep to avoid CPU spinning
                 await asyncio.sleep(0.01)
         
         except Exception as e:
             logger.error(f"Error in notification subscription: {str(e)}")
         finally:
-            # Ensure we unsubscribe
             try:
                 await pubsub.unsubscribe()
             except Exception as e:

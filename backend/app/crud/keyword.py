@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.models.keyword import Keyword, TalkingPoint
@@ -58,8 +58,6 @@ def delete_keyword(db: Session, keyword_id: int) -> bool:
     db.commit()
     return True
 
-
-# Talking Points CRUD operations
 
 def get_talking_point(db: Session, talking_point_id: int) -> Optional[TalkingPoint]:
     """Get a talking point by ID."""

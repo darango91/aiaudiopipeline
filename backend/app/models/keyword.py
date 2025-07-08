@@ -12,10 +12,9 @@ class Keyword(Base):
     text = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
     threshold = Column(Float, default=0.7)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
     
-    # Relationship with talking points
     talking_points = relationship("TalkingPoint", back_populates="keyword", cascade="all, delete-orphan")
     
     def __repr__(self):
@@ -29,11 +28,10 @@ class TalkingPoint(Base):
     keyword_id = Column(Integer, ForeignKey("keywords.id"), nullable=False)
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    priority = Column(Integer, default=1)  # Higher number = higher priority
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    priority = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
     
-    # Relationship with keyword
     keyword = relationship("Keyword", back_populates="talking_points")
     
     def __repr__(self):

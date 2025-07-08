@@ -12,15 +12,14 @@ class AudioSession(Base):
     __tablename__ = "audio_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String(36), unique=True, index=True)  # UUID as string
+    session_id = Column(String(36), unique=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    status = Column(String(50), default="active")  # active, completed, etc.
+    status = Column(String(50), default="active")
     meta_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
 
-    # Relationship with transcripts
     transcripts = relationship("Transcript", back_populates="session", cascade="all, delete-orphan")
 
 
@@ -32,13 +31,12 @@ class Transcript(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("audio_sessions.id"), nullable=False)
-    audio_file_path = Column(String(255), nullable=True)  # Path to stored audio file
-    text = Column(Text, nullable=False)  # Full transcript text
-    language = Column(String(10), nullable=True)  # Detected language code
-    duration = Column(Integer, nullable=True)  # Audio duration in seconds
-    meta_data = Column(JSON, nullable=True)  # Additional metadata like confidence scores
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    audio_file_path = Column(String(255), nullable=True)
+    text = Column(Text, nullable=False)
+    language = Column(String(10), nullable=True)
+    duration = Column(Integer, nullable=True)
+    meta_data = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(datetime.timezone.utc), onupdate=datetime.now(datetime.timezone.utc))
 
-    # Relationship with audio session
     session = relationship("AudioSession", back_populates="transcripts")

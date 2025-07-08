@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class AudioFormat(str, Enum):
@@ -50,7 +50,6 @@ class AudioSessionInDBBase(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    # For backward compatibility
     @property
     def metadata(self) -> Optional[Dict[str, Any]]:
         return self.meta_data
@@ -96,7 +95,6 @@ class TranscriptInDBBase(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    # For backward compatibility
     @property
     def metadata(self) -> Optional[Dict[str, Any]]:
         return self.meta_data

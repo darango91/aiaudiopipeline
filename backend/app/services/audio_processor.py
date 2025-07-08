@@ -43,23 +43,19 @@ class AudioProcessor:
             db: Database session
         """
         try:
-            # Create a temporary file for processing
             with tempfile.NamedTemporaryFile(suffix=f'.{file_format}', delete=False) as temp_file:
                 temp_file.write(audio_data)
                 temp_path = temp_file.name
             
             try:
-                # Transcribe the audio file
                 transcription_result = await self.transcription_service.transcribe_file(temp_path)
                 
-                # Process each segment for keywords
                 detected_keywords_list = []
                 for segment in transcription_result.segments:
                     detected_keywords = await self.keyword_detector.detect_keywords(segment.text)
                     segment.detected_keywords = detected_keywords
                     detected_keywords_list.extend(detected_keywords)
                     
-                    # If keywords are detected, send notifications
                     if detected_keywords:
                         for keyword in detected_keywords:
                             await self.notification_service.send_notification(
@@ -72,7 +68,6 @@ class AudioProcessor:
                                 }
                             )
                 
-                # Create a complete transcription result
                 full_text = " ".join([segment.text for segment in transcription_result.segments])
                 db_transcription = TranscriptionResult(
                     session_id=session_id,
@@ -87,10 +82,8 @@ class AudioProcessor:
                     is_final=True
                 )
                 
-                # Save to database
                 audio_crud.create_transcript(db=db, session_id=session_id, transcription=db_transcription)
                 
-                # Send notification that processing is complete
                 await self.notification_service.send_notification(
                     session_id=session_id,
                     notification_type=NotificationType.TRANSCRIPTION_COMPLETE,
@@ -101,15 +94,12 @@ class AudioProcessor:
                 )
                 
             finally:
-                # Clean up the temporary file
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
                     
         except Exception as e:
-            # Check if this is a status message or an actual error
             if str(e) == "TRANSCRIPTION_COMPLETE":
                 logger.info(f"Audio processing completed: {str(e)}")
-                # Send completion notification
                 await self.notification_service.send_notification(
                     session_id=session_id,
                     notification_type=NotificationType.TRANSCRIPTION_COMPLETE,
@@ -117,7 +107,6 @@ class AudioProcessor:
                 )
             else:
                 logger.error(f"Error processing audio file: {str(e)}")
-                # Send error notification
                 await self.notification_service.send_notification(
                     session_id=session_id,
                     notification_type=NotificationType.ERROR,
@@ -139,7 +128,6 @@ class AudioProcessor:
             db: Database session
         """
         try:
-            # Initialize session data if not exists
             if session_id not in self.active_sessions:
                 self.active_sessions[session_id] = {
                     "chunks": [],
@@ -149,30 +137,25 @@ class AudioProcessor:
             
             session_data = self.active_sessions[session_id]
             
-            # Check if this chunk is in sequence
             if sequence_number <= session_data["last_sequence"]:
                 logger.warning(f"Received out-of-order chunk for session {session_id}: {sequence_number} <= {session_data['last_sequence']}")
                 return
             
             session_data["last_sequence"] = sequence_number
             
-            # Create a temporary file for processing
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_file.write(chunk_data)
                 temp_path = temp_file.name
             
             try:
-                # Transcribe the audio chunk
                 transcription_result = await self.transcription_service.transcribe_chunk(temp_path, is_final)
                 
-                # Process each segment for keywords
                 detected_keywords_list = []
                 for segment in transcription_result.segments:
                     detected_keywords = await self.keyword_detector.detect_keywords(segment.text)
                     segment.detected_keywords = detected_keywords
                     detected_keywords_list.extend(detected_keywords)
                     
-                    # If keywords are detected, send notifications
                     if detected_keywords:
                         for keyword in detected_keywords:
                             await self.notification_service.send_notification(
@@ -185,21 +168,17 @@ class AudioProcessor:
                                 }
                             )
                 
-                # Add to session data
                 session_data["chunks"].append({
                     "sequence_number": sequence_number,
                     "timestamp": timestamp,
                     "segments": transcription_result.segments
                 })
                 
-                # If this is the final chunk, save the complete transcript to the database
                 if is_final:
-                    # Combine all segments from all chunks
                     all_segments = []
                     for chunk in sorted(session_data["chunks"], key=lambda x: x["sequence_number"]):
                         all_segments.extend(chunk["segments"])
                     
-                    # Create a complete transcription result
                     full_text = " ".join([segment.text for segment in all_segments])
                     db_transcription = TranscriptionResult(
                         session_id=session_id,
@@ -211,10 +190,8 @@ class AudioProcessor:
                         is_final=True
                     )
                     
-                    # Save to database
                     audio_crud.create_transcript(db=db, session_id=session_id, transcription=db_transcription)
                     
-                    # Send notification that processing is complete
                     await self.notification_service.send_notification(
                         session_id=session_id,
                         notification_type=NotificationType.TRANSCRIPTION_COMPLETE,
@@ -224,10 +201,8 @@ class AudioProcessor:
                         }
                     )
                     
-                    # Clean up session data
                     del self.active_sessions[session_id]
                 else:
-                    # Send partial transcription notification
                     await self.notification_service.send_notification(
                         session_id=session_id,
                         notification_type=NotificationType.PARTIAL_TRANSCRIPTION,
@@ -237,13 +212,11 @@ class AudioProcessor:
                         }
                     )
             finally:
-                # Clean up the temporary file
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
                     
         except Exception as e:
             logger.error(f"Error processing audio chunk: {str(e)}")
-            # Send error notification
             await self.notification_service.send_notification(
                 session_id=session_id,
                 notification_type=NotificationType.ERROR,

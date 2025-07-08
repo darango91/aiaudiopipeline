@@ -1,10 +1,9 @@
 import asyncio
 import logging
 import os
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 
 from openai import OpenAI
-from pydantic import ValidationError
 
 from app.core.config import settings
 from app.schemas.audio import TranscriptionResult, TranscriptSegment
@@ -35,14 +34,11 @@ class TranscriptionService:
             raise ValueError("OpenAI API key is not configured")
         
         try:
-            # First try to use the mock transcription for development/testing
             if os.environ.get("USE_MOCK_TRANSCRIPTION", "false").lower() == "true":
                 logger.info("Using mock transcription response for file")
                 return self._create_mock_transcription()
                 
-            # Use OpenAI's Whisper model for transcription
             with open(file_path, "rb") as audio_file:
-                # Call OpenAI API asynchronously
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
                     None,
@@ -55,26 +51,20 @@ class TranscriptionService:
                     )
                 )
             
-            # Process the response to extract segments
             segments = []
             
-            # Handle the response format from OpenAI API v1.0.0+
             try:
-                # Convert response to dictionary if it's an object
                 if hasattr(response, 'model_dump'):
                     response_dict = response.model_dump()
                 elif hasattr(response, '__dict__'):
                     response_dict = response.__dict__
                 else:
-                    response_dict = response  # Assume it's already a dict
+                    response_dict = response
                 
-                # Extract segments from the response dictionary
                 response_segments = response_dict.get("segments", [])
                 
                 for segment in response_segments:
-                    # Extract segment data
                     if isinstance(segment, dict):
-                        # Dictionary access
                         segments.append(
                             TranscriptSegment(
                                 text=segment.get("text", ""),
@@ -86,7 +76,6 @@ class TranscriptionService:
                             )
                         )
                     else:
-                        # Object access
                         segment_dict = segment.__dict__ if hasattr(segment, '__dict__') else {}
                         segments.append(
                             TranscriptSegment(
@@ -100,7 +89,6 @@ class TranscriptionService:
                         )
             except Exception as e:
                 logger.error(f"Error processing segments from response: {e}")
-                # Create a fallback segment if parsing fails
                 segments.append(
                     TranscriptSegment(
                         text="[Error processing transcription response]",
@@ -112,12 +100,11 @@ class TranscriptionService:
                     )
                 )
             
-            # Combine all segment texts to create the full transcript text
             full_text = " ".join([segment.text for segment in segments])
             
             return TranscriptionResult(
-                session_id="",  # This would be filled in by the caller
-                text=full_text,  # Add the required text field
+                session_id="",
+                text=full_text,
                 segments=segments,
                 language="en",
                 duration=response.duration if hasattr(response, 'duration') else None,
@@ -126,7 +113,6 @@ class TranscriptionService:
         
         except Exception as e:
             logger.error(f"Error transcribing audio file: {str(e)}")
-            # If there's an API error, fall back to mock transcription
             if "insufficient_quota" in str(e) or "exceeded your current quota" in str(e):
                 logger.warning("OpenAI API quota exceeded, using mock transcription instead")
                 return self._create_mock_transcription()
@@ -166,15 +152,14 @@ class TranscriptionService:
             )
         ]
         
-        # Combine all segment texts to create the full transcript text
         full_text = " ".join([segment.text for segment in segments])
         
         return TranscriptionResult(
-            session_id="",  # This would be filled in by the caller
-            text=full_text,  # Add the required text field
+            session_id="",
+            text=full_text,
             segments=segments,
             language="en",
-            duration=11,  # Duration based on the last segment's end time
+            duration=11,
             is_final=True
         )
     
@@ -193,14 +178,11 @@ class TranscriptionService:
             raise ValueError("OpenAI API key is not configured")
         
         try:
-            # First try to use the mock transcription for development/testing
             if os.environ.get("USE_MOCK_TRANSCRIPTION", "false").lower() == "true":
                 logger.info("Using mock transcription response for chunk")
                 return self._create_mock_transcription()
                 
-            # Use OpenAI's Whisper model for transcription
             with open(chunk_path, "rb") as audio_file:
-                # Call OpenAI API asynchronously
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
                     None,
@@ -213,26 +195,20 @@ class TranscriptionService:
                     )
                 )
             
-            # Process the response to extract segments
             segments = []
             
-            # Handle the response format from OpenAI API v1.0.0+
             try:
-                # Convert response to dictionary if it's an object
                 if hasattr(response, 'model_dump'):
                     response_dict = response.model_dump()
                 elif hasattr(response, '__dict__'):
                     response_dict = response.__dict__
                 else:
-                    response_dict = response  # Assume it's already a dict
+                    response_dict = response
                 
-                # Extract segments from the response dictionary
                 response_segments = response_dict.get("segments", [])
                 
                 for segment in response_segments:
-                    # Extract segment data
                     if isinstance(segment, dict):
-                        # Dictionary access
                         segments.append(
                             TranscriptSegment(
                                 text=segment.get("text", ""),
@@ -244,7 +220,6 @@ class TranscriptionService:
                             )
                         )
                     else:
-                        # Object access
                         segment_dict = segment.__dict__ if hasattr(segment, '__dict__') else {}
                         segments.append(
                             TranscriptSegment(
@@ -258,7 +233,6 @@ class TranscriptionService:
                         )
             except Exception as e:
                 logger.error(f"Error processing segments from response: {e}")
-                # Create a fallback segment if parsing fails
                 segments.append(
                     TranscriptSegment(
                         text="[Error processing transcription response]",
@@ -270,56 +244,20 @@ class TranscriptionService:
                     )
                 )
             
-            # Combine all segment texts to create the full transcript text
             full_text = " ".join([segment.text for segment in segments])
             
             return TranscriptionResult(
-                session_id="",  # This would be filled in by the caller
-                text=full_text,  # Add the required text field
+                session_id="",
+                text=full_text,
                 segments=segments,
-                language="en",  # Default to English as we set in the API request
+                language="en",
                 duration=response.duration if hasattr(response, 'duration') else None,
                 is_final=is_final
             )
         
         except Exception as e:
             logger.error(f"Error transcribing audio chunk: {str(e)}")
-            # If there's an API error, fall back to mock transcription
             if "insufficient_quota" in str(e) or "exceeded your current quota" in str(e):
                 logger.warning("OpenAI API quota exceeded, using mock transcription instead")
                 return self._create_mock_transcription()
             raise
-    
-    async def diarize_speakers(self, audio_path: str) -> List[Dict[str, Any]]:
-        """
-        Perform speaker diarization on an audio file.
-        
-        This is a placeholder for speaker diarization functionality.
-        In a real implementation, this would use a specialized service or model
-        for speaker diarization.
-        
-        Args:
-            audio_path: Path to the audio file
-            
-        Returns:
-            List of speaker segments with timing information
-        """
-        # This is a placeholder implementation
-        # In a real system, you would integrate with a speaker diarization service
-        # such as Pyannote, Google Cloud Speech-to-Text, or a custom model
-        
-        # Mock response for demonstration
-        return [
-            {
-                "speaker": "speaker_1",
-                "start_time": 0.0,
-                "end_time": 5.0,
-                "is_prospect": True
-            },
-            {
-                "speaker": "speaker_2",
-                "start_time": 5.1,
-                "end_time": 10.0,
-                "is_prospect": False
-            }
-        ]
