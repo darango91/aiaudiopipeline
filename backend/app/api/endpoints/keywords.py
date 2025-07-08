@@ -1,6 +1,6 @@
-from typing import List, Optional
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -34,7 +34,6 @@ def create_keyword(
     """
     Create a new keyword.
     """
-    # Check if keyword with same text already exists
     db_keyword = keyword_crud.get_keyword_by_text(db=db, text=keyword.text)
     if db_keyword:
         raise HTTPException(
@@ -59,10 +58,8 @@ def get_keyword(
             detail=f"Keyword with ID {keyword_id} not found"
         )
     
-    # Get talking points for this keyword
     talking_points = keyword_crud.get_talking_points_by_keyword(db=db, keyword_id=keyword_id)
     
-    # Create response with keyword and talking points
     result = db_keyword.__dict__
     result["talking_points"] = talking_points
     
@@ -123,7 +120,6 @@ def create_talking_point(
     """
     Create a new talking point for a specific keyword.
     """
-    # Check if keyword exists
     db_keyword = keyword_crud.get_keyword(db=db, keyword_id=keyword_id)
     if not db_keyword:
         raise HTTPException(
@@ -131,7 +127,6 @@ def create_talking_point(
             detail=f"Keyword with ID {keyword_id} not found"
         )
     
-    # Create talking point
     return keyword_crud.create_talking_point(db=db, keyword_id=keyword_id, talking_point=talking_point)
 
 
@@ -145,7 +140,6 @@ def update_talking_point(
     """
     Update a talking point by ID.
     """
-    # Check if keyword exists
     db_keyword = keyword_crud.get_keyword(db=db, keyword_id=keyword_id)
     if not db_keyword:
         raise HTTPException(
@@ -153,7 +147,6 @@ def update_talking_point(
             detail=f"Keyword with ID {keyword_id} not found"
         )
     
-    # Check if talking point exists and belongs to the keyword
     db_talking_point = keyword_crud.get_talking_point(db=db, talking_point_id=talking_point_id)
     if not db_talking_point:
         raise HTTPException(
@@ -167,7 +160,6 @@ def update_talking_point(
             detail=f"Talking point with ID {talking_point_id} does not belong to keyword with ID {keyword_id}"
         )
     
-    # Update talking point
     return keyword_crud.update_talking_point(db=db, talking_point_id=talking_point_id, talking_point_update=talking_point_update)
 
 
@@ -180,7 +172,6 @@ def delete_talking_point(
     """
     Delete a talking point by ID.
     """
-    # Check if keyword exists
     db_keyword = keyword_crud.get_keyword(db=db, keyword_id=keyword_id)
     if not db_keyword:
         raise HTTPException(
@@ -188,7 +179,6 @@ def delete_talking_point(
             detail=f"Keyword with ID {keyword_id} not found"
         )
     
-    # Check if talking point exists and belongs to the keyword
     db_talking_point = keyword_crud.get_talking_point(db=db, talking_point_id=talking_point_id)
     if not db_talking_point:
         raise HTTPException(
@@ -202,7 +192,6 @@ def delete_talking_point(
             detail=f"Talking point with ID {talking_point_id} does not belong to keyword with ID {keyword_id}"
         )
     
-    # Delete talking point
     success = keyword_crud.delete_talking_point(db=db, talking_point_id=talking_point_id)
     if success:
         return {"message": f"Talking point with ID {talking_point_id} deleted successfully"}

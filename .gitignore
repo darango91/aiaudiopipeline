@@ -48,3 +48,9 @@ uploads/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Audio storage
+audio_storage/
+
+# Redis
+redis.conf
