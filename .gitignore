@@ -54,3 +54,6 @@ audio_storage/
 
 # Redis
 redis.conf
+
+# Frontend
+node_modules/
