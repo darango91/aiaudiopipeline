@@ -274,6 +274,7 @@ The application is containerized and can be deployed to any environment that sup
 - Implement speaker diarization
 - Add analytics dashboard
 - Implement real-time audio visualization
+- Use S3 for audio storage
 
 ## License
 
